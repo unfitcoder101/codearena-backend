@@ -1,7 +1,7 @@
 const Problem = require("../models/Problem");
 
 // GET ALL PROBLEMS
-exports.getProblems = async (req, res) => {
+const getProblems = async (req, res) => {
   try {
     const problems = await Problem.find();
     res.json(problems);
@@ -11,7 +11,7 @@ exports.getProblems = async (req, res) => {
 };
 
 // GET SINGLE PROBLEM
-exports.getProblemById = async (req, res) => {
+const getProblemById = async (req, res) => {
   try {
     const problem = await Problem.findById(req.params.id);
     if (!problem) {
@@ -23,8 +23,8 @@ exports.getProblemById = async (req, res) => {
   }
 };
 
-// CREATE PROBLEM (TEMP – ADMIN)
-exports.createProblem = async (req, res) => {
+// CREATE PROBLEM (TEMP ADMIN)
+const createProblem = async (req, res) => {
   try {
     const { title, description, difficulty } = req.body;
 
@@ -38,4 +38,10 @@ exports.createProblem = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+module.exports = {
+  getProblems,
+  getProblemById,
+  createProblem,
 };

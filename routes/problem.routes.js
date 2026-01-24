@@ -2,13 +2,16 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  getAllProblems,
+  getProblems,
   getProblemById,
-  createProblem
+  createProblem,
 } = require("../controllers/problem.controller");
 
-router.get("/", getAllProblems);
+// PUBLIC
+router.get("/", getProblems);
 router.get("/:id", getProblemById);
+
+// TEMP ADMIN (for now)
 router.post("/", createProblem);
 
 module.exports = router;
