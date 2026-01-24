@@ -4,18 +4,15 @@ const cors = require("cors");
 const app = express();
 
 /* =====================
-   CORS (SAFE VERSION)
+   CORS (NO WILDCARDS)
 ===================== */
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// IMPORTANT: use "/*" not "*"
-app.options("/*", cors());
 
 /* =====================
    BODY PARSER
