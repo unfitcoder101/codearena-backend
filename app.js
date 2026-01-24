@@ -3,14 +3,9 @@ const cors = require("cors");
 
 const app = express();
 
-/**
- * ✅ REQUIRED for Render / proxy environments
- */
-app.set("trust proxy", 1);
-
-/**
- * ✅ SINGLE, CORRECT CORS CONFIG
- */
+/* =====================
+   CORS — MUST BE FIRST
+===================== */
 app.use(
   cors({
     origin: "*",
@@ -19,27 +14,30 @@ app.use(
   })
 );
 
-/**
- * ✅ MUST come AFTER cors
- */
+// 👇 VERY IMPORTANT — handle preflight
+app.options("*", cors());
+
+/* =====================
+   BODY PARSER
+===================== */
 app.use(express.json());
 
-/**
- * ✅ Root sanity check
- */
+/* =====================
+   ROOT CHECK
+===================== */
 app.get("/", (req, res) => {
   res.send("CodeArena Backend is Live");
 });
 
-/**
- * Routes
- */
-const problemRoutes = require("./routes/problem.routes");
+/* =====================
+   ROUTES
+===================== */
 const authRoutes = require("./routes/auth.routes");
+const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
 
-app.use("/api/problems", problemRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 
 module.exports = app;
