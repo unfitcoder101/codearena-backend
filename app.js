@@ -3,25 +3,21 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ CORS (SIMPLE + SAFE)
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// ❌ DO NOT USE app.options("*", cors())  ← THIS CAUSED THE CRASH
+/* ✅ SAFE CORS */
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 app.use(express.json());
 
-// ✅ Sanity check
+/* ✅ HEALTH CHECK */
 app.get("/", (req, res) => {
-  res.send("CodeArena Backend is Live 🚀");
+  res.send("CodeArena Backend is Live");
 });
 
-// ROUTES
+/* ✅ ROUTES */
 const authRoutes = require("./routes/auth.routes");
 const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
