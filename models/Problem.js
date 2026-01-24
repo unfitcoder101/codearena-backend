@@ -1,42 +1,54 @@
 const mongoose = require("mongoose");
 
-const problemSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
+const problemSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    difficulty: {
+      type: String,
+      enum: ["Easy", "Medium", "Hard"],
+      default: "Easy",
+    },
+
+    inputFormat: {
+      type: String,
+      default: "",
+    },
+
+    outputFormat: {
+      type: String,
+      default: "",
+    },
+
+    constraints: {
+      type: String,
+      default: "",
+    },
+
+    sampleInput: {
+      type: String,
+      default: "",
+    },
+
+    sampleOutput: {
+      type: String,
+      default: "",
+    },
+
+    expectedOutput: {
+      type: String,
+      default: "",
+    },
   },
-  description: {
-    type: String,
-    required: true
-  },
-  inputFormat: {
-    type: String,
-    required: true
-  },
-  outputFormat: {
-    type: String,
-    required: true
-  },
-  constraints: {
-    type: String,
-    required: true
-  },
-  sampleInput: {
-    type: String,
-    required: true
-  },
-  sampleOutput: {
-    type: String,
-    required: true
-  },
-  expectedOutput: {
-  type: String,
-  required: true,
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Problem", problemSchema);
