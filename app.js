@@ -3,9 +3,7 @@ const cors = require("cors");
 
 const app = express();
 
-/* =====================
-   CORS (NO WILDCARDS)
-===================== */
+// ✅ CORS (SIMPLE + SAFE)
 app.use(
   cors({
     origin: "*",
@@ -14,21 +12,16 @@ app.use(
   })
 );
 
-/* =====================
-   BODY PARSER
-===================== */
+// ❌ DO NOT USE app.options("*", cors())  ← THIS CAUSED THE CRASH
+
 app.use(express.json());
 
-/* =====================
-   ROOT ROUTE
-===================== */
+// ✅ Sanity check
 app.get("/", (req, res) => {
-  res.send("CodeArena Backend is Live");
+  res.send("CodeArena Backend is Live 🚀");
 });
 
-/* =====================
-   ROUTES
-===================== */
+// ROUTES
 const authRoutes = require("./routes/auth.routes");
 const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
