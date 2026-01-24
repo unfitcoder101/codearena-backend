@@ -4,7 +4,7 @@ const cors = require("cors");
 const app = express();
 
 /* =====================
-   CORS — MUST BE FIRST
+   CORS (SAFE VERSION)
 ===================== */
 app.use(
   cors({
@@ -14,8 +14,8 @@ app.use(
   })
 );
 
-// 👇 VERY IMPORTANT — handle preflight
-app.options("*", cors());
+// IMPORTANT: use "/*" not "*"
+app.options("/*", cors());
 
 /* =====================
    BODY PARSER
@@ -23,7 +23,7 @@ app.options("*", cors());
 app.use(express.json());
 
 /* =====================
-   ROOT CHECK
+   ROOT ROUTE
 ===================== */
 app.get("/", (req, res) => {
   res.send("CodeArena Backend is Live");
