@@ -3,21 +3,23 @@ const cors = require("cors");
 
 const app = express();
 
-/* ✅ SAFE CORS */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+// ✅ CORS (simple & stable)
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
+// ✅ JSON
 app.use(express.json());
 
-/* ✅ HEALTH CHECK */
+// ✅ Root check
 app.get("/", (req, res) => {
   res.send("CodeArena Backend is Live");
 });
 
-/* ✅ ROUTES */
+// ✅ Routes
 const authRoutes = require("./routes/auth.routes");
 const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
