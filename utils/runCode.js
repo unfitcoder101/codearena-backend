@@ -1,20 +1,21 @@
-const fs =require("fs");
 const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
-exports.runCppCode = (code) => {
-    return new Promise((resolve,reject) => {
-        const filePath = "./temp.cpp";
+exports.runCppCode = (code, input = "") => {
+  return new Promise((resolve, reject) => {
+    const filePath = path.join(__dirname, "../temp.cpp");
+    const execPath = path.join(__dirname, "../a.out");
 
-        //Step 1: wiret code to file
-        fs.writeFileSync(filePath,code);
+    fs.writeFileSync(filePath, code);
 
-        //Step 2: compile and run
-        exec(`g++ ${filePath} -o temp && ./temp`, (error, stdout,stderr) => {
-            if(error){
-                return reject(stderr || error.message);
-        
-            }
-            resolve(stdout);
-        });
-    });
+    exec(
+      `g++ ${filePath} -o ${execPath} && echo "${input}" | ${execPath}`,
+      { timeout: 5000 },
+      (error, stdout, stderr) => {
+        if (error) return reject(stderr || error.message);
+        resolve(stdout);
+      }
+    );
+  });
 };

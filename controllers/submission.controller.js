@@ -1,12 +1,15 @@
 const Submission = require("../models/Submission");
+const Problem = require("../models/Problem");
 const { runCppCode } = require("../utils/runCode");
-const Problem = require("../models/Problem"); // MUST be here (top level)
 
+/*
+  CREATE SUBMISSION + JUDGE
+*/
 exports.createSubmission = async (req, res) => {
   try {
     const { problemId, language, code } = req.body;
 
-    // 1) First store the submission as PENDING
+    // 1️⃣ Create submission as PENDING
     const submission = await Submission.create({
       user: req.user.id,
       problem: problemId,
@@ -15,58 +18,61 @@ exports.createSubmission = async (req, res) => {
       status: "PENDING",
     });
 
-    // 2) Run the code
+    // 2️⃣ Fetch problem (for input & expected output)
+    const problem = await Problem.findById(problemId);
+    if (!problem) {
+      submission.status = "ERR";
+      await submission.save();
+      return res.status(404).json({ message: "Problem not found" });
+    }
+
     let output = "";
 
-try {
-  if (language === "cpp") {
-    output = await runCppCode(code);
-  }
-} catch (err) {
-  console.error("Runner error:", err);
+    // 3️⃣ Execute code WITH INPUT
+    try {
+      if (language === "cpp") {
+        output = await runCppCode(
+          code,
+          problem.sampleInput || ""
+        );
+      } else {
+        submission.status = "ERR";
+        await submission.save();
+        return res.status(400).json({ message: "Unsupported language" });
+      }
+    } catch (err) {
+      console.error("Runner error:", err);
 
-  submission.status = "CE";
-  await submission.save();
+      submission.status = "CE";
+      await submission.save();
 
-  return res.status(201).json({
-    message: "Compilation Error",
-    error: err.toString(),
-    submission,
-  });
-}
+      return res.status(201).json({
+        message: "Compilation / Runtime Error",
+        error: err.toString(),
+        submission,
+      });
+    }
 
-// ---- REAL JUDGING STARTS HERE ----
+    // 4️⃣ Normalize output
+    const actualOutput = String(output).trim();
+    const expectedOutput = String(problem.expectedOutput || "").trim();
 
-// Make sure output is always a string
-output = String(output || "").trim();
+    // 5️⃣ Judge
+    const verdict = actualOutput === expectedOutput ? "AC" : "WA";
 
-// Fetch problem
-const problem = await Problem.findById(problemId);
+    submission.status = verdict;
+    await submission.save();
 
-if (!problem) {
-  return res.status(404).json({ message: "Problem not found" });
-}
-
-// Make sure expectedOutput exists and is a string
-const expected = String(problem.expectedOutput || "").trim();
-
-let verdict = "AC";
-if (output !== expected) {
-  verdict = "WA";
-}
-
-// Save verdict
-submission.status = verdict;
-await submission.save();
-
-return res.status(201).json({
-  message: "Judged successfully",
-  output,
-  verdict,
-  submission,
-});
+    // 6️⃣ Respond
+    return res.status(201).json({
+      message: "Judged successfully",
+      output: actualOutput,
+      verdict,
+      submission,
+    });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Submission error:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
