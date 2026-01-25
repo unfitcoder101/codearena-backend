@@ -6,43 +6,37 @@ const problemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
     description: {
       type: String,
       required: true,
     },
-
     difficulty: {
       type: String,
       enum: ["Easy", "Medium", "Hard"],
       default: "Easy",
     },
 
+    // OPTIONAL (can add later)
     inputFormat: {
       type: String,
       default: "",
     },
-
     outputFormat: {
       type: String,
       default: "",
     },
-
     constraints: {
       type: String,
       default: "",
     },
-
     sampleInput: {
       type: String,
       default: "",
     },
-
     sampleOutput: {
       type: String,
       default: "",
     },
-
     expectedOutput: {
       type: String,
       default: "",
