@@ -4,18 +4,39 @@ const path = require("path");
 
 exports.runCppCode = (code, input = "") => {
   return new Promise((resolve, reject) => {
-    const filePath = path.join(__dirname, "../temp.cpp");
-    const execPath = path.join(__dirname, "../a.out");
+    const tempDir = path.join(__dirname, "../temp");
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
-    fs.writeFileSync(filePath, code);
+    const id = Date.now();
+    const cppFile = path.join(tempDir, `${id}.cpp`);
+    const exeFile = path.join(tempDir, `${id}.out`);
 
-    exec(
-      `g++ ${filePath} -o ${execPath} && echo "${input}" | ${execPath}`,
-      { timeout: 5000 },
-      (error, stdout, stderr) => {
-        if (error) return reject(stderr || error.message);
-        resolve(stdout);
+    fs.writeFileSync(cppFile, code);
+
+    // Compile
+    exec(`g++ ${cppFile} -o ${exeFile}`, (compileErr) => {
+      if (compileErr) {
+        return reject("Compilation Error");
       }
-    );
+
+      // Run with INPUT
+      const run = exec(
+        exeFile,
+        { timeout: 3000 },
+        (runErr, stdout, stderr) => {
+          if (runErr) {
+            if (runErr.killed) return reject("Time Limit Exceeded");
+            return reject(stderr || "Runtime Error");
+          }
+          resolve(stdout.trim());
+        }
+      );
+
+      // 👇 PASS INPUT HERE
+      if (input) {
+        run.stdin.write(input);
+      }
+      run.stdin.end();
+    });
   });
 };
