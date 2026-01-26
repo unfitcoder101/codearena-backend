@@ -4,23 +4,36 @@ const path = require("path");
 
 exports.runCppCode = (code, input = "") => {
   return new Promise((resolve, reject) => {
-    const tempDir = path.join(__dirname, "../temp");
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+    const tempDir = path.join(process.cwd(), "temp");
 
-    const id = Date.now();
-    const cppFile = path.join(tempDir, `${id}.cpp`);
-    const exeFile = path.join(tempDir, `${id}.out`);
+    try {
+      // 🔥 If temp exists but is a FILE, delete it
+      if (fs.existsSync(tempDir) && !fs.lstatSync(tempDir).isDirectory()) {
+        fs.unlinkSync(tempDir);
+      }
 
-    fs.writeFileSync(cppFile, code);
+      // ✅ Ensure directory
+      fs.mkdirSync(tempDir, { recursive: true });
+    } catch (err) {
+      return reject("Temp directory setup failed");
+    }
 
-    // Compile
+    const fileId = Date.now();
+    const cppFile = path.join(tempDir, `${fileId}.cpp`);
+    const exeFile = path.join(tempDir, `${fileId}.out`);
+
+    try {
+      fs.writeFileSync(cppFile, code);
+    } catch {
+      return reject("File write error");
+    }
+
     exec(`g++ ${cppFile} -o ${exeFile}`, (compileErr) => {
       if (compileErr) {
         return reject("Compilation Error");
       }
 
-      // Run with INPUT
-      const run = exec(
+      const runProcess = exec(
         exeFile,
         { timeout: 3000 },
         (runErr, stdout, stderr) => {
@@ -32,11 +45,8 @@ exports.runCppCode = (code, input = "") => {
         }
       );
 
-      // 👇 PASS INPUT HERE
-      if (input) {
-        run.stdin.write(input);
-      }
-      run.stdin.end();
+      runProcess.stdin.write(input);
+      runProcess.stdin.end();
     });
   });
 };
