@@ -24,7 +24,9 @@ const authRoutes = require("./routes/auth.routes");
 const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
 const vaultRoutes = require("./routes/vault.routes");
+const analysisRoutes = require("./routes/analysis.routes");
 
+app.use("/api/analysis", analysisRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);

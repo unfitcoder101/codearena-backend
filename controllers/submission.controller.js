@@ -17,6 +17,15 @@ exports.createSubmission = async (req, res) => {
       language,
       code,
       status: "PENDING",
+    }); 
+
+    const Analysis = require("../models/Analysis");
+
+    await Analysis.create({
+      userId: req.user.id,
+      submissionId: submission._id,
+      problemId: submission.problemId,
+      status: "pending",
     });
 
     let output;
