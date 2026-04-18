@@ -1,52 +1,21 @@
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const { runCpp } = require("./runners/cppRunner");
+const { runJS } = require("./runners/jsRunner");
+const { runJava } = require("./runners/javaRunner");
 
-exports.runCppCode = (code, input = "") => {
-  return new Promise((resolve, reject) => {
-    const tempDir = path.join(process.cwd(), "temp");
+async function runCode(language, code, input) {
+  switch (language) {
+    case "cpp":
+      return await runCpp(code, input);
 
-    try {
-      // 🔥 If temp exists but is a FILE, delete it
-      if (fs.existsSync(tempDir) && !fs.lstatSync(tempDir).isDirectory()) {
-        fs.unlinkSync(tempDir);
-      }
+    case "js":
+      return await runJS(code, input);
 
-      // ✅ Ensure directory
-      fs.mkdirSync(tempDir, { recursive: true });
-    } catch (err) {
-      return reject("Temp directory setup failed");
-    }
+    case "java":
+      return await runJava(code, input);
 
-    const fileId = Date.now();
-    const cppFile = path.join(tempDir, `${fileId}.cpp`);
-    const exeFile = path.join(tempDir, `${fileId}.out`);
+    default:
+      throw new Error("Unsupported language");
+  }
+}
 
-    try {
-      fs.writeFileSync(cppFile, code);
-    } catch {
-      return reject("File write error");
-    }
-
-    exec(`g++ ${cppFile} -o ${exeFile}`, (compileErr) => {
-      if (compileErr) {
-        return reject("Compilation Error");
-      }
-
-      const runProcess = exec(
-        exeFile,
-        { timeout: 3000 },
-        (runErr, stdout, stderr) => {
-          if (runErr) {
-            if (runErr.killed) return reject("Time Limit Exceeded");
-            return reject(stderr || "Runtime Error");
-          }
-          resolve(stdout.trim());
-        }
-      );
-
-      runProcess.stdin.write(input);
-      runProcess.stdin.end();
-    });
-  });
-};
+module.exports = { runCode };

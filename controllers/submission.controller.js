@@ -1,6 +1,8 @@
 const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
-const { runCppCode } = require("../utils/runCode");
+const { runCode } = require("../utils/runCode");
+const { runAnalyzer } = require("../services/ai/analyzer.runner");
+const Analysis = require("../models/Analysis");
 
 exports.createSubmission = async (req, res) => {
   try {
@@ -24,16 +26,17 @@ exports.createSubmission = async (req, res) => {
     await Analysis.create({
       userId: req.user.id,
       submissionId: submission._id,
-      problemId: submission.problemId,
+      problemId: submission.problem,
       status: "pending",
     });
 
+    runAnalyzer(submission._id);
     let output;
 
     try {
       if (language === "cpp") {
         // 🔥 PASS SAMPLE INPUT
-        output = await runCppCode(code, problem.sampleInput || "");
+        output = await runCode(language, code, problem.sampleInput || "");
       }
     } catch (err) {
       submission.status = "CE";
