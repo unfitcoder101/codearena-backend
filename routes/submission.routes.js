@@ -1,17 +1,18 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
+const {
+  createSubmission,
+  getMySubmissions,
+  getSubmissionById,
+  getSubmissionsByProblem,
+} = require("../controllers/submission.controller");
 
-const authMiddleware = require("../middlewares/auth.middleware");
-const Submission = require("../models/Submission");
+router.use(protect);
 
-router.get("/me", authMiddleware, async (req, res) => {
-  const submissions = await Submission.find({ user: req.user.id })
-    .populate("problem", "title")
-    .sort({ createdAt: -1 });
-
-  res.json(submissions);
-});
-
-router.post("/", authMiddleware, require("../controllers/submission.controller").createSubmission);
+router.post("/", createSubmission);
+router.get("/", getMySubmissions);
+router.get("/:id", getSubmissionById);
+router.get("/problem/:problemId", getSubmissionsByProblem);
 
 module.exports = router;

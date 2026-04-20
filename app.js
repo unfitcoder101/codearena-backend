@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const dashboardRoutes = require("./routes/dashboard.routes");
 
 const app = express();
 
@@ -18,6 +19,8 @@ const allowedOrigins = [
   "http://localhost:3000",  // in case you use port 3000
   process.env.FRONTEND_URL, // your deployed Vercel URL (set this in .env)
 ];
+
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use(
   cors({

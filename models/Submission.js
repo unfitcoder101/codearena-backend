@@ -15,19 +15,35 @@ const submissionSchema = new mongoose.Schema(
     language: {
       type: String,
       required: true,
-      enum: ["cpp", "js", "python"], // allowed languages
+      enum: ["cpp", "js", "java"],   // matches your 3 runners exactly
     },
     code: {
       type: String,
       required: true,
+      maxlength: [50000, "Code too long (max 50,000 characters)"],
     },
     status: {
       type: String,
       enum: ["PENDING", "AC", "WA", "TLE", "CE"],
       default: "PENDING",
     },
+    // Error message for CE/TLE — shown to user
+    errorMessage: {
+      type: String,
+      default: null,
+    },
+    // Execution time in ms (set by runner later)
+    executionTime: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true }
 );
+
+// Fast lookup: "all submissions by this user, newest first"
+submissionSchema.index({ user: 1, createdAt: -1 });
+// Fast lookup: "all submissions for this problem"
+submissionSchema.index({ problem: 1, status: 1 });
 
 module.exports = mongoose.model("Submission", submissionSchema);

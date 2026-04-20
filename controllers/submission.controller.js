@@ -1,28 +1,47 @@
 const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
+const Analysis = require("../models/Analysis");
+const User = require("../models/User");
 const { runCode } = require("../utils/runCode");
 const { runAnalyzer } = require("../services/ai/analyzer.runner");
-const Analysis = require("../models/Analysis");
 
 exports.createSubmission = async (req, res) => {
   try {
     const { problemId, language, code } = req.body;
 
-    const problem = await Problem.findById(problemId);
-    if (!problem) {
-      return res.status(404).json({ message: "Problem not found" });
+    if (!problemId || !language || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "problemId, language, and code are all required",
+      });
     }
 
+    const SUPPORTED_LANGUAGES = ["cpp", "js", "java"];
+    if (!SUPPORTED_LANGUAGES.includes(language)) {
+      return res.status(400).json({
+        success: false,
+        message: `Language '${language}' not supported. Use: ${SUPPORTED_LANGUAGES.join(", ")}`,
+      });
+    }
+
+    const problem = await Problem.findById(problemId).lean();
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    // Save submission immediately as PENDING
     const submission = await Submission.create({
       user: req.user.id,
       problem: problemId,
       language,
       code,
       status: "PENDING",
-    }); 
+    });
 
-    const Analysis = require("../models/Analysis");
-
+    // Create analysis placeholder
     await Analysis.create({
       userId: req.user.id,
       submissionId: submission._id,
@@ -30,41 +49,189 @@ exports.createSubmission = async (req, res) => {
       status: "pending",
     });
 
-    runAnalyzer(submission._id);
-    let output;
+    // ── Build test cases ──
+    // Use hidden test cases if they exist, otherwise fall back to sample
+    const testCases = problem.hiddenTestCases && problem.hiddenTestCases.length > 0
+      ? problem.hiddenTestCases
+      : [{ input: problem.sampleInput || "", expectedOutput: problem.sampleOutput || problem.expectedOutput || "" }];
+
+    // ── Run code against ALL test cases ──
+    let verdict = "AC";
+    let failedOutput = null;
+    let failedExpected = null;
+    let failedTestCase = null;
+    let errorMessage = null;
+    const startTime = Date.now();
 
     try {
-      if (language === "cpp") {
-        // 🔥 PASS SAMPLE INPUT
-        output = await runCode(language, code, problem.sampleInput || "");
+      for (let i = 0; i < testCases.length; i++) {
+        const tc = testCases[i];
+
+        let output;
+        try {
+          output = await runCode(language, code, tc.input || "");
+        } catch (err) {
+          // CE or TLE
+          const errMsg = err.message || "";
+          if (errMsg.includes("Time Limit")) {
+            verdict = "TLE";
+          } else {
+            verdict = "CE";
+          }
+          errorMessage = errMsg.slice(0, 1000);
+          break;
+        }
+
+        const actual = String(output ?? "").trim();
+        const expected = String(tc.expectedOutput ?? "").trim();
+
+        if (actual !== expected) {
+          verdict = "WA";
+          failedOutput = actual;
+          failedExpected = expected;
+          failedTestCase = i + 1;
+          break;
+          // Fail fast — stop on first wrong test case
+        }
       }
     } catch (err) {
-      submission.status = "CE";
-      await submission.save();
-
-      return res.status(201).json({
-        message: "Compilation / Runtime Error",
-        error: err.toString(),
-        submission,
-      });
+      verdict = "CE";
+      errorMessage = err.message.slice(0, 1000);
     }
 
-    output = String(output).trim();
-    const expected = String(problem.expectedOutput).trim();
+    const executionTime = Date.now() - startTime;
 
-    const verdict = output === expected ? "AC" : "WA";
-
+    // Save final verdict
     submission.status = verdict;
+    submission.errorMessage = errorMessage;
+    submission.executionTime = executionTime;
     await submission.save();
 
-    res.status(201).json({
-      message: "Judged successfully",
-      output,
+    // ── Update user stats ──
+    // Increment attempt count always
+    // Increment solved count only on first AC for this problem
+    const updateData = { $inc: { attemptCount: 1 } };
+
+    if (verdict === "AC") {
+      // Check if user already solved this problem before
+      const alreadySolved = await Submission.findOne({
+        user: req.user.id,
+        problem: problemId,
+        status: "AC",
+        _id: { $ne: submission._id }, // exclude current submission
+      }).lean();
+
+      if (!alreadySolved) {
+        updateData.$inc.solvedCount = 1;
+      }
+    }
+
+    await User.findByIdAndUpdate(req.user.id, updateData);
+
+    // ── Fire AI analyzer in background ──
+    runAnalyzer(submission._id).catch((err) => {
+      console.error(`[Analyzer] Failed for ${submission._id}:`, err.message);
+    });
+
+    return res.status(201).json({
+      success: true,
       verdict,
+      executionTime,
+      totalTestCases: testCases.length,
+      // Only show which test case failed, not the actual test case content
+      failedOnTestCase: failedTestCase,
+      output: failedOutput,
+      expected: failedExpected,
+      error: errorMessage,
       submission,
     });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("[Submission] createSubmission error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while processing your submission",
+    });
+  }
+};
+
+exports.getMySubmissions = async (req, res) => {
+  try {
+    const submissions = await Submission.find({ user: req.user.id })
+      .populate("problem", "title difficulty tags")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: submissions.length,
+      submissions,
+    });
+  } catch (err) {
+    console.error("[Submission] getMySubmissions error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch submissions",
+    });
+  }
+};
+
+exports.getSubmissionById = async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id)
+      .populate("problem", "title difficulty")
+      .lean();
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    if (submission.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view this submission",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      submission,
+    });
+  } catch (err) {
+    console.error("[Submission] getSubmissionById error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch submission",
+    });
+  }
+};
+
+// GET /api/submissions/problem/:problemId
+// All my submissions for one specific problem
+exports.getSubmissionsByProblem = async (req, res) => {
+  try {
+    const submissions = await Submission.find({
+      user: req.user.id,
+      problem: req.params.problemId,
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: submissions.length,
+      submissions,
+    });
+  } catch (err) {
+    console.error("[Submission] getSubmissionsByProblem error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch submissions",
+    });
   }
 };

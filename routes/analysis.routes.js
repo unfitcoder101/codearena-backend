@@ -1,9 +1,16 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
+const {
+  getAnalysisBySubmissionId,
+  getAnalysisStatus,
+  getMyAnalysisHistory,
+} = require("../controllers/analysis.controller");
 
-const { getAnalysisBySubmissionId } = require("../controllers/analysis.controller");
-const authMiddleware = require("../middleware/authMiddleware");
+router.use(protect);
 
-router.get("/:submissionId", authMiddleware, getAnalysisBySubmissionId);
+router.get("/my/history", getMyAnalysisHistory);
+router.get("/status/:submissionId", getAnalysisStatus);
+router.get("/:submissionId", getAnalysisBySubmissionId);
 
 module.exports = router;

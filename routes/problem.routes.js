@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 const {
   getAllProblems,
   getProblemById,
@@ -8,6 +9,6 @@ const {
 
 router.get("/", getAllProblems);
 router.get("/:id", getProblemById);
-router.post("/", createProblem);
+router.post("/", protect, createProblem);
 
 module.exports = router;

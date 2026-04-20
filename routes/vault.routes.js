@@ -1,15 +1,22 @@
 const express = require("express");
 const router = express.Router();
-
-const authMiddleware = require("../middlewares/auth.middleware");
+const { protect } = require("../middleware/authMiddleware");
+const { generateHints } = require("../controllers/vault.controller");
 const {
   createVaultProblem,
   getVaultProblems,
   toggleSolved,
+  deleteVaultProblem,
+  updateNotes,
 } = require("../controllers/vault.controller");
 
-router.post("/", authMiddleware, createVaultProblem);
-router.get("/", authMiddleware, getVaultProblems);
-router.patch("/:id/toggle", authMiddleware, toggleSolved);
+router.use(protect);
+
+router.post("/:id/hints", generateHints);
+router.get("/", getVaultProblems);
+router.post("/", createVaultProblem);
+router.patch("/:id/toggle", toggleSolved);
+router.patch("/:id/notes", updateNotes);
+router.delete("/:id", deleteVaultProblem);
 
 module.exports = router;
