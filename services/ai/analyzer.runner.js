@@ -99,7 +99,7 @@ async function runAnalyzer(submissionId) {
   } catch (err) {
     // ── If anything fails, mark analysis as failed ──
     // We don't crash the server — we just record the failure
-    console.error(`[Analyzer] Failed for submission ${submissionId}:`, err.message);
+    console.error(`[Analyzer] Failed for submission ${submissionId}:`, err);
 
     try {
       analysis.status = "failed";

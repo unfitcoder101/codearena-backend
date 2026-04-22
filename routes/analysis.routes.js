@@ -9,8 +9,13 @@ const {
 
 router.use(protect);
 
+// my/history MUST be before /:submissionId
 router.get("/my/history", getMyAnalysisHistory);
+
+// status MUST be before /:submissionId  
 router.get("/status/:submissionId", getAnalysisStatus);
+
+// this catches everything else
 router.get("/:submissionId", getAnalysisBySubmissionId);
 
 module.exports = router;

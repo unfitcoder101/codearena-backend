@@ -4,6 +4,67 @@ const Analysis = require("../models/Analysis");
 const User = require("../models/User");
 const { runCode } = require("../utils/runCode");
 const { runAnalyzer } = require("../services/ai/analyzer.runner");
+const { createSubmission, getMySubmissions, 
+        getSubmissionById, getSubmissionsByProblem,
+        runCode_ } = require("../controllers/submission.controller");
+// POST /api/submissions/run
+// Runs code against SAMPLE input only — no verdict saved
+// Like LeetCode's "Run" button
+exports.runCode_ = async (req, res) => {
+  try {
+    const { problemId, language, code } = req.body;
+
+    if (!problemId || !language || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "problemId, language, and code are required",
+      });
+    }
+
+    const problem = await Problem.findById(problemId).lean();
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    // Only run against sample input — not hidden test cases
+    const input = problem.sampleInput || "";
+    const expected = String(problem.sampleOutput || "").trim();
+
+    let output;
+    try {
+      output = await runCode(language, code, input);
+    } catch (err) {
+      return res.status(200).json({
+        success: true,
+        verdict: "CE",
+        error: err.message.slice(0, 500),
+        output: null,
+        expected,
+      });
+    }
+
+    const actual = String(output ?? "").trim();
+    const passed = actual === expected;
+
+    return res.status(200).json({
+      success: true,
+      verdict: passed ? "PASS" : "FAIL",
+      output: actual,
+      expected,
+      passed,
+    });
+
+  } catch (err) {
+    console.error("[Run] error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to run code",
+    });
+  }
+};
 
 exports.createSubmission = async (req, res) => {
   try {
@@ -154,7 +215,7 @@ exports.createSubmission = async (req, res) => {
     });
   }
 };
-
+router.post("/run", runCode_);
 exports.getMySubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({ user: req.user.id })

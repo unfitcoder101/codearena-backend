@@ -34,12 +34,10 @@ async function runJava(code, input = "") {
       "--rm",
       "--network", "none",
       `--memory=${MEMORY_LIMIT}`,
-      "--cpus=0.5",
-      "--read-only",
-      "--tmpfs", "/tmp:size=50m",      // Java needs more tmp space for .class files
+      "--cpus=0.5",     // Java needs more tmp space for .class files
       "--ulimit", "nproc=100:100",     // JVM spawns more threads than C++/JS
       "--ulimit", "fsize=10485760",
-      "-v", `${tmpDir}:/code:ro`,
+      "-v", `${tmpDir}:/code`,
       "-w", "/tmp",
       "eclipse-temurin:21-alpine",
       "/bin/sh", "-c",

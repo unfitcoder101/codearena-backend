@@ -51,11 +51,9 @@ ${code}
       "--network", "none",
       `--memory=${MEMORY_LIMIT}`,
       "--cpus=0.5",
-      "--read-only",
-      "--tmpfs", "/tmp:size=10m,noexec",
+      "-v", `${tmpDir}:/code`,
       "--ulimit", "nproc=50:50",
       "--ulimit", "fsize=10485760",
-      "-v", `${tmpDir}:/code:ro`,
       "-w", "/tmp",
       "node:20-alpine",
       "node", "--disallow-code-generation-from-strings",  // blocks eval() abuse
