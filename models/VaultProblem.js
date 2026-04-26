@@ -44,6 +44,16 @@ const vaultProblemSchema = new mongoose.Schema(
       index: true,
     },
 
+    needsRevision: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    revisionNote: {
+      type: String,
+      default: "",
+    },
+
     // ── Progress tracking ──
     // How many times has the user attempted this problem
     attemptCount: {

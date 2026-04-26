@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const interviewRoutes = require("./routes/interview.routes");
 
 const app = express();
 
@@ -102,7 +103,7 @@ const analysisRoutes = require("./routes/analysis.routes");
 
 // Auth gets the stricter rate limiter
 app.use("/api/auth", authLimiter, authRoutes);
-
+app.use("/api/interviews", interviewRoutes);
 app.use("/api/analysis", analysisRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);

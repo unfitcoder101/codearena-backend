@@ -33,6 +33,25 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Only allow common email providers
+const allowedDomains = [
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "icloud.com",
+  "protonmail.com",
+  "live.com",
+];
+
+const emailDomain = email.toLowerCase().split("@")[1];
+if (!allowedDomains.includes(emailDomain)) {
+  return res.status(400).json({
+    success: false,
+    message: `Please use a valid email provider (Gmail, Yahoo, Outlook, etc.)`,
+  });
+}
+
     // ── Check duplicate email ──
     const existingUser = await User.findOne({ email: email.toLowerCase() }).lean();
     if (existingUser) {

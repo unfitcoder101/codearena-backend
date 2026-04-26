@@ -1,5 +1,69 @@
 const Problem = require("../models/Problem");
+const Groq = require("groq-sdk");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+// POST /api/problems/:id/hint
+// Returns one hint without spoiling the solution
+exports.getHint = async (req, res) => {
+  try {
+    const problem = await Problem.findById(req.params.id)
+      .select("-hiddenTestCases")
+      .lean();
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    const { level = 1 } = req.body;
+    // level 1 = gentle, level 2 = directional, level 3 = strong
+
+    const hintPrompts = {
+      1: "Give a very gentle hint — just point toward the right category of algorithm. Don't mention specific data structures.",
+      2: "Give a directional hint — mention the type of data structure or technique that would help, but don't give the approach.",
+      3: "Give a strong hint — describe the approach at a high level without writing any code.",
+    };
+
+    const prompt = `
+Problem: ${problem.title}
+Description: ${problem.description}
+Constraints: ${problem.constraints || "None"}
+
+${hintPrompts[level] || hintPrompts[1]}
+
+Respond in 1-2 sentences maximum. Be concise.
+    `.trim();
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 150,
+      messages: [
+        {
+          role: "system",
+          content: "You are a coding mentor giving hints. Never give away the full solution. Be brief.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+
+    const hint = response.choices[0]?.message?.content;
+
+    return res.status(200).json({
+      success: true,
+      hint,
+      level,
+    });
+
+  } catch (err) {
+    console.error("[Problem] getHint error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate hint",
+    });
+  }
+};
 // ─────────────────────────────────────────────
 // GET /api/problems
 // ─────────────────────────────────────────────

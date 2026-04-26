@@ -242,12 +242,8 @@ exports.updateNotes = async (req, res) => {
   }
 };
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// POST /api/vault/:id/hints
-// Generate AI hints for a vault problem
-exports.generateHints = async (req, res) => {
+// PATCH /api/vault/:id/revision
+exports.toggleRevision = async (req, res) => {
   try {
     const problem = await VaultProblem.findById(req.params.id);
 
@@ -265,7 +261,45 @@ exports.generateHints = async (req, res) => {
       });
     }
 
-    // If hints already generated, just return them
+    problem.needsRevision = !problem.needsRevision;
+    await problem.save();
+
+    return res.status(200).json({
+      success: true,
+      needsRevision: problem.needsRevision,
+      problem,
+    });
+
+  } catch (err) {
+    console.error("[Vault] toggleRevision error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update revision status",
+    });
+  }
+};
+
+const Groq = require("groq-sdk");
+
+exports.generateHints = async (req, res) => {
+  try {
+    const problem = await VaultProblem.findById(req.params.id);
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found in vault",
+      });
+    }
+
+    if (problem.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Not your vault problem",
+      });
+    }
+
+    // Return cached hints if already generated
     if (problem.aiStatus === "completed" && problem.aiHints.length > 0) {
       return res.status(200).json({
         success: true,
@@ -275,8 +309,7 @@ exports.generateHints = async (req, res) => {
       });
     }
 
-    // Call Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const prompt = `
 You are helping a student prepare for coding interviews.
@@ -292,23 +325,31 @@ Give them:
 1. A 2 sentence summary of what this problem is testing
 2. Three progressive hints (hint 1 = gentle, hint 2 = directional, hint 3 = strong clue)
 
-Respond ONLY with this JSON:
+Respond ONLY with this JSON, no other text:
 {
   "summary": "...",
   "hints": ["hint1", "hint2", "hint3"]
 }
     `.trim();
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 400,
+      messages: [
+        {
+          role: "system",
+          content: "You are a coding mentor. Always respond with valid JSON only. No markdown, no explanation.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
 
-    // Parse response
+    const text = response.choices[0]?.message?.content;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Invalid AI response format");
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Save to DB so we don't call Gemini again
     problem.aiHints = parsed.hints || [];
     problem.aiSummary = parsed.summary || "";
     problem.aiStatus = "completed";

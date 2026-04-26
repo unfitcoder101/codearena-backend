@@ -32,6 +32,12 @@ const submissionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Personal notes added by user after seeing AI feedback
+    notes: {
+      type: String,
+      default: null,
+      maxlength: [2000, "Notes max 2000 characters"],
+    },
     // Execution time in ms (set by runner later)
     executionTime: {
       type: Number,

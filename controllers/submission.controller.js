@@ -215,7 +215,7 @@ exports.createSubmission = async (req, res) => {
     });
   }
 };
-router.post("/run", runCode_);
+
 exports.getMySubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({ user: req.user.id })
@@ -293,6 +293,52 @@ exports.getSubmissionsByProblem = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch submissions",
+    });
+  }
+};
+// PATCH /api/submissions/:id/notes
+// User adds personal notes to their submission
+exports.updateSubmissionNotes = async (req, res) => {
+  try {
+    const { notes } = req.body;
+
+    if (notes === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Notes field is required",
+      });
+    }
+
+    const submission = await Submission.findById(req.params.id);
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    if (submission.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Not your submission",
+      });
+    }
+
+    submission.notes = notes;
+    await submission.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Notes saved",
+      notes: submission.notes,
+    });
+
+  } catch (err) {
+    console.error("[Submission] updateNotes error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save notes",
     });
   }
 };
