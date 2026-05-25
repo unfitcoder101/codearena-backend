@@ -6,19 +6,13 @@ const {
   getProblemById,
   createProblem,
   getHint,
-} = require("../controllers/problem.controller");
-const {
-  getAllProblems,
-  getProblemById,
-  createProblem,
-  getHint,
   deleteProblem,
 } = require("../controllers/problem.controller");
 
-router.delete("/:id", protect, deleteProblem);
 router.get("/", getAllProblems);
 router.get("/:id", getProblemById);
 router.post("/", protect, createProblem);
 router.post("/:id/hint", protect, getHint);
+router.delete("/:id", protect, deleteProblem);
 
 module.exports = router;
