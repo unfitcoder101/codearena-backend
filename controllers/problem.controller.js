@@ -179,3 +179,30 @@ exports.createProblem = async (req, res) => {
     });
   }
 };
+
+exports.deleteProblem = async (req, res) => {
+  try {
+    const problem = await Problem.findById(req.params.id);
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    await Problem.findByIdAndDelete(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Problem deleted",
+    });
+
+  } catch (err) {
+    console.error("[Problem] deleteProblem error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete problem",
+    });
+  }
+};
