@@ -89,9 +89,8 @@ exports.getAllProblems = async (req, res) => {
 
     // Show public problems + user's own private problems
     const query = userId
-      ? { ...filter, $or: [{ isPublic: true }, { createdBy: userId }] }
-      : { ...filter, isPublic: true };
-
+  ? { ...filter, $or: [{ isPublic: true }, { isPublic: { $exists: false } }, { createdBy: userId }] }
+  : { ...filter, $or: [{ isPublic: true }, { isPublic: { $exists: false } }] };
     const problems = await Problem.find(query)
       .select("-hiddenTestCases")
       .sort({ createdAt: -1 })
