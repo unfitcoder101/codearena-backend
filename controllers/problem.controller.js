@@ -69,13 +69,31 @@ Respond in 1-2 sentences maximum. Be concise.
 // ─────────────────────────────────────────────
 exports.getAllProblems = async (req, res) => {
   try {
-    // Support filtering by difficulty and tag
     const filter = {};
     if (req.query.difficulty) filter.difficulty = req.query.difficulty;
     if (req.query.tag) filter.tags = req.query.tag;
 
-    const problems = await Problem.find(filter)
-      .select("-hiddenTestCases")   // NEVER send hidden test cases to frontend
+    // Get token if exists — to show personal problems
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      try {
+        const jwt = require("jsonwebtoken");
+        const decoded = jwt.verify(
+          authHeader.split(" ")[1],
+          process.env.JWT_SECRET
+        );
+        userId = decoded.id;
+      } catch (_) {}
+    }
+
+    // Show public problems + user's own private problems
+    const query = userId
+      ? { ...filter, $or: [{ isPublic: true }, { createdBy: userId }] }
+      : { ...filter, isPublic: true };
+
+    const problems = await Problem.find(query)
+      .select("-hiddenTestCases")
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
@@ -132,24 +150,10 @@ exports.getProblemById = async (req, res) => {
 exports.createProblem = async (req, res) => {
   try {
     const {
-      title,
-      description,
-      difficulty,
-      tags,
-      inputFormat,
-      outputFormat,
-      constraints,
-      sampleInput,
-      sampleOutput,
-      hiddenTestCases,
+      title, description, difficulty, tags,
+      inputFormat, outputFormat, constraints,
+      sampleInput, sampleOutput, hiddenTestCases,
     } = req.body;
-
-    if (!req.user.isAdmin) {
-  return res.status(403).json({
-    success: false,
-    message: "Only admins can create problems",
-  });
-}
 
     if (!title || !description) {
       return res.status(400).json({
@@ -157,6 +161,10 @@ exports.createProblem = async (req, res) => {
         message: "Title and description are required",
       });
     }
+
+    // Admins create public problems visible to everyone
+    // Regular users create private problems visible only to them
+    const isPublic = req.user.isAdmin ? true : false;
 
     const problem = await Problem.create({
       title,
@@ -170,6 +178,7 @@ exports.createProblem = async (req, res) => {
       sampleOutput,
       hiddenTestCases: hiddenTestCases || [],
       createdBy: req.user.id,
+      isPublic,
     });
 
     return res.status(201).json({
@@ -195,6 +204,17 @@ exports.deleteProblem = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Problem not found",
+      });
+    }
+
+    // Only creator or admin can delete
+    if (
+      problem.createdBy.toString() !== req.user.id &&
+      !req.user.isAdmin
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own problems",
       });
     }
 

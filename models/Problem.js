@@ -27,6 +27,10 @@ const problemSchema = new mongoose.Schema(
       default: "Easy",
       index: true,
     },
+    isPublic: {
+  type: Boolean,
+  default: true,
+},
 
     // ── Tags for weak topic detection ──
     // e.g. ["arrays", "two-pointers", "sorting"]
