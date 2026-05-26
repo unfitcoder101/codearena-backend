@@ -144,6 +144,13 @@ exports.createProblem = async (req, res) => {
       hiddenTestCases,
     } = req.body;
 
+    if (!req.user.isAdmin) {
+  return res.status(403).json({
+    success: false,
+    message: "Only admins can create problems",
+  });
+}
+
     if (!title || !description) {
       return res.status(400).json({
         success: false,
