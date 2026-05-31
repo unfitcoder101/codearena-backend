@@ -44,4 +44,19 @@ const protect = (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const optionalAuth = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return next(); // no token — continue without user
+    }
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    next(); // invalid token — continue without user
+  }
+};
+
+module.exports = { protect, optionalAuth };

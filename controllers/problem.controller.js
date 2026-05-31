@@ -73,25 +73,20 @@ exports.getAllProblems = async (req, res) => {
     if (req.query.difficulty) filter.difficulty = req.query.difficulty;
     if (req.query.tag) filter.tags = req.query.tag;
 
-    // Get token if exists — to show personal problems
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      try {
-        const jwt = require("jsonwebtoken");
-        const decoded = jwt.verify(
-          authHeader.split(" ")[1],
-          process.env.JWT_SECRET
-        );
-        userId = decoded.id;
-      } catch (_) {}
+    // Show public problems to everyone
+    // If logged in, also show their personal problems
+    const userId = req.user?.id;
+
+    if (userId) {
+      filter.$or = [
+        { isPublic: true },
+        { createdBy: userId },
+      ];
+    } else {
+      filter.isPublic = true;
     }
 
-    // Show public problems + user's own private problems
-    const query = userId
-  ? { ...filter, $or: [{ isPublic: true }, { isPublic: { $exists: false } }, { createdBy: userId }] }
-  : { ...filter, $or: [{ isPublic: true }, { isPublic: { $exists: false } }] };
-    const problems = await Problem.find(query)
+    const problems = await Problem.find(filter)
       .select("-hiddenTestCases")
       .sort({ createdAt: -1 })
       .limit(100)
@@ -102,7 +97,6 @@ exports.getAllProblems = async (req, res) => {
       count: problems.length,
       problems,
     });
-
   } catch (err) {
     console.error("[Problem] getAllProblems error:", err);
     return res.status(500).json({
@@ -146,6 +140,7 @@ exports.getProblemById = async (req, res) => {
 // POST /api/problems
 // Protected — only logged-in users can create problems
 // ─────────────────────────────────────────────
+
 exports.createProblem = async (req, res) => {
   try {
     const {
@@ -161,8 +156,7 @@ exports.createProblem = async (req, res) => {
       });
     }
 
-    // Admins create public problems visible to everyone
-    // Regular users create private problems visible only to them
+    // Admins create public problems, users create private problems
     const isPublic = req.user.isAdmin ? true : false;
 
     const problem = await Problem.create({
@@ -182,10 +176,11 @@ exports.createProblem = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Problem created successfully",
+      message: isPublic
+        ? "Public problem created"
+        : "Private problem created — only visible to you",
       problem,
     });
-
   } catch (err) {
     console.error("[Problem] createProblem error:", err);
     return res.status(500).json({
