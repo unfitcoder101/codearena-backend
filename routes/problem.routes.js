@@ -13,8 +13,9 @@ const {
 router.get("/", getAllProblems);
 router.get("/:id", getProblemById);
 router.post("/", protect, createProblem);
-router.post("/:id/hint", protect, getHint);
 router.delete("/:id", protect, deleteProblem);
+router.post("/:id/hint", protect, getHint);
+
 router.get("/", optionalAuth, getAllProblems);
 
-module.exports = router;
+module.exports = router;  
