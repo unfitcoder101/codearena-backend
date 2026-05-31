@@ -1,6 +1,7 @@
 const Problem = require("../models/Problem");
 const Groq = require("groq-sdk");
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const User = require("../models/User");
 
 // POST /api/problems/:id/hint
 // Returns one hint without spoiling the solution
@@ -157,6 +158,7 @@ exports.createProblem = async (req, res) => {
     }
 
     // Admins create public problems, users create private problems
+    const user = await User.findById(req.user.id).lean();
     const isPublic = req.user.isAdmin ? true : false;
 
     const problem = await Problem.create({
