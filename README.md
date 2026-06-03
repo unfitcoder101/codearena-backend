@@ -211,4 +211,4 @@ FRONTEND_URL=http://localhost:5173
 ## Author
 
 Built by **Harshvardhan Kasliwal**
-[LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/harshvardhan-kasliwal-675207229/) · [GitHub](https://github.com/unfitcoder101)
+[LinkedIn](https://www.linkedin.com/in/harshvardhan-kasliwal-675207229/)     · [GitHub](https://github.com/unfitcoder101)
