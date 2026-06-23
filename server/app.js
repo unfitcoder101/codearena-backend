@@ -18,6 +18,7 @@ app.use(helmet());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://codearena-frontend-lovat.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
