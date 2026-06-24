@@ -182,5 +182,3 @@ module.exports = async (req, res) => {
 Built by **Harshvardhan Kasliwal**
 [LinkedIn](https://www.linkedin.com/in/harshvardhan-kasliwal-675207229/) · [GitHub](https://github.com/unfitcoder101)
 ```
-
----
