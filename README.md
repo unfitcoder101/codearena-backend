@@ -3,8 +3,8 @@
 
 > The execution engine, AI pipeline, and API powering CodeArena.
 
-🔗 **Live API**: https://codearena-backend-theta.vercel.app
-🎨 **Frontend Repo**: https://github.com/unfitcoder101/codearena-frontend
+🔗 **Live API**: https://codearena-backend-theta.vercel.app                           
+🎨 **Frontend Repo**: https://github.com/unfitcoder101/codearena-frontend                                    
 🎨 **Live Frontend**: https://codearena-frontend-lovat.vercel.app
 
 ---
