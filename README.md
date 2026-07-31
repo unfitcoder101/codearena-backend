@@ -1,7 +1,7 @@
 
-# CodeArena Backend
-
-> The execution engine, AI pipeline, and API powering CodeArena.          
+# CodeArena Backend                        
+               
+> The execution engine, AI pipeline, and API powering CodeArena.                    
 
 🔗 **Live API**: https://codearena-backend-theta.vercel.app                           
 🎨 **Frontend Repo**: https://github.com/unfitcoder101/codearena-frontend                                              
