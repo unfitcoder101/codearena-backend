@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
+const { interviewLimiter } = require("../middleware/submissionLimiter");
 const {
   startInterview,
   sendMessage,
@@ -9,13 +10,8 @@ const {
 
 router.use(protect);
 
-// Start a new interview for a submission
 router.post("/start", startInterview);
-
-// Send a message and get AI response
-router.post("/:id/message", sendMessage);
-
-// Get existing interview by submission ID
+router.post("/:id/message", interviewLimiter, sendMessage);
 router.get("/submission/:submissionId", getInterviewBySubmission);
 
 module.exports = router;
