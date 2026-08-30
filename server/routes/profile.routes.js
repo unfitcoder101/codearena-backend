@@ -1,17 +1,17 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 
 const {
   getProblems,
   getProblemById,
-  createProblem,
 } = require("../controllers/problem.controller");
 
-// PUBLIC
+// These read-only routes are public
 router.get("/", getProblems);
 router.get("/:id", getProblemById);
 
-// TEMP (ADMIN)
-router.post("/", createProblem);
+// The unprotected createProblem that was here ("TEMP ADMIN") has been removed.
+// Use POST /api/problems with an admin token instead.
 
 module.exports = router;
