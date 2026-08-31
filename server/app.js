@@ -2,19 +2,13 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const dashboardRoutes = require("./routes/dashboard.routes");
-const interviewRoutes = require("./routes/interview.routes");
 
 const app = express();
 
 // ================= HELMET =================
-// Helmet puts a hard hat on your server.
-// It adds security headers so browsers don't do dumb dangerous things.
 app.use(helmet());
 
 // ================= CORS =================
-// This is the bouncer at the door.
-// Only YOUR frontend is allowed in. Everyone else gets blocked.
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
@@ -25,7 +19,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (Postman, curl, mobile)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
@@ -36,28 +29,9 @@ app.use(
   })
 );
 
-app.use("/api/dashboard", dashboardRoutes);
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, Postman, curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS policy blocked this origin: " + origin));
-    },
-    credentials: true,
-  })
-);
-
 // ================= RATE LIMITER =================
-// This is like a ticket counter.
-// Each IP address gets max 100 requests per 15 minutes.
-// After that, they get a "slow down" error until the timer resets.
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
@@ -68,8 +42,6 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// Stricter limiter for auth routes only (login/register)
-// You only get 10 attempts per 15 minutes — stops brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -80,8 +52,6 @@ const authLimiter = rateLimit({
 });
 
 // ================= JSON =================
-// Only accept request bodies up to 50KB.
-// Without this, someone can send a 1GB payload and crash your server.
 app.use(express.json({ limit: "50kb" }));
 app.use(express.urlencoded({ extended: true, limit: "50kb" }));
 
@@ -101,18 +71,18 @@ const problemRoutes = require("./routes/problem.routes");
 const submissionRoutes = require("./routes/submission.routes");
 const vaultRoutes = require("./routes/vault.routes");
 const analysisRoutes = require("./routes/analysis.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
+const interviewRoutes = require("./routes/interview.routes");
 
-// Auth gets the stricter rate limiter
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/analysis", analysisRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/vault", vaultRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // ================= 404 HANDLER =================
-// If someone hits a route that doesn't exist,
-// send a clean error instead of crashing.
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -121,23 +91,17 @@ app.use((req, res) => {
 });
 
 // ================= GLOBAL ERROR HANDLER =================
-// This is the safety net at the bottom.
-// Any error thrown ANYWHERE in your app lands here.
-// Without this, one crash takes down the whole server.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // Log it so you can debug (you'll improve this later with a proper logger)
   console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.message);
 
-  // CORS errors
-  if (err.message && err.message.startsWith("CORS policy blocked")) {
+  if (err.message && err.message.startsWith("CORS blocked")) {
     return res.status(403).json({
       success: false,
       message: err.message,
     });
   }
 
-  // Validation errors (from express-validator or zod)
   if (err.name === "ValidationError") {
     return res.status(400).json({
       success: false,
@@ -146,7 +110,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // JWT errors
   if (err.name === "JsonWebTokenError") {
     return res.status(401).json({
       success: false,
@@ -154,7 +117,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Default: something unknown broke — don't leak internal details
   res.status(err.status || 500).json({
     success: false,
     message: err.status ? err.message : "Something went wrong on our end",
